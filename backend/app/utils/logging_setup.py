@@ -12,20 +12,20 @@ def setup_logging():
     """
     # Create logger
     logger = logging.getLogger()
-    logger.setLevel(Config.LOG_LEVEL)
+    logger.setLevel(logging.DEBUG)  # Set root logger to DEBUG
     
     # Create formatters
     verbose_formatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(pathname)s:%(lineno)d - %(message)s'
     )
     simple_formatter = logging.Formatter(
-        '%(asctime)s - %(levelname)s - %(message)s'
+        '%(asctime)s - %(levelname)s - %(name)s - %(message)s'  # Added name to see source
     )
     
-    # Console Handler
+    # Console Handler - Now showing DEBUG messages
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(simple_formatter)
-    console_handler.setLevel(logging.INFO)
+    console_handler.setLevel(logging.DEBUG)  # Changed from INFO to DEBUG
     
     # File Handler
     file_handler = RotatingFileHandler(
@@ -47,6 +47,10 @@ def setup_logging():
     logging.getLogger('urllib3').setLevel(logging.WARNING)
     logging.getLogger('google').setLevel(logging.WARNING)
     logging.getLogger('werkzeug').setLevel(logging.INFO)
+    
+    # Set specific loggers to DEBUG
+    logging.getLogger('app.services.geosphere_service').setLevel(logging.DEBUG)
+    logging.getLogger('app.services.warning_service').setLevel(logging.DEBUG)
     
     logger.info('Logging setup completed')
 

@@ -2,3 +2,5 @@
 export.sh
 /project_export
 /backend/infocal.log
+/backend/app/utils/__pycache__/*
+/backend/app/services/__pycache__/*

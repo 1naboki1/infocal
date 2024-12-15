@@ -3,6 +3,8 @@ from typing import Dict, Optional, Tuple
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 from geopy.distance import geodesic
+from shapely.geometry import Point, Polygon
+from pyproj import Transformer
 from ..config import Config
 
 logger = logging.getLogger(__name__)
@@ -97,11 +99,12 @@ def geocode_location(location_name: str) -> Dict:
 
 def check_location_relevance(user_location: Dict, warning_location: Dict) -> bool:
     """
-    Check if a warning location is relevant for a user location based on distance.
+    Check if a warning location is relevant for a user location based on both
+    polygon containment and distance.
     
     Args:
         user_location (Dict): User's location with lat/lon
-        warning_location (Dict): Warning's location with lat/lon
+        warning_location (Dict): Warning's location with lat/lon and raw_data
         
     Returns:
         bool: True if warning is relevant
@@ -111,16 +114,51 @@ def check_location_relevance(user_location: Dict, warning_location: Dict) -> boo
         logger.debug(f"Checking relevance - User location: {user_location}")
         logger.debug(f"Checking relevance - Warning location: {warning_location}")
 
-        # Extract coordinates
+        # Extract user coordinates
         user_lat = float(user_location.get('lat', 0))
         user_lon = float(user_location.get('lon', 0))
+
+        logger.debug(f"User coordinates: ({user_lat}, {user_lon})")
+
+        # First check if the warning contains raw geometry data
+        raw_data = warning_location.get('raw_data', {})
+        geometry = raw_data.get('geometry', {})
+        
+        if geometry and geometry.get('coordinates'):
+            try:
+                # Create point from user location
+                user_point = Point(user_lon, user_lat)
+                
+                # Get the first polygon from the MultiPolygon
+                polygon_coords = []
+                transformer = Transformer.from_crs("EPSG:3857", "EPSG:4326", always_xy=True)
+                
+                for coord in geometry['coordinates'][0][0]:
+                    # Convert Web Mercator coordinates to WGS84 (lat/lon)
+                    lon, lat = transformer.transform(coord[0], coord[1])
+                    polygon_coords.append((lon, lat))
+                
+                if polygon_coords:
+                    warning_polygon = Polygon(polygon_coords)
+                    # Check if point is within polygon or within the radius of the polygon
+                    is_within = warning_polygon.contains(user_point)
+                    if is_within:
+                        logger.debug("Location is within warning polygon")
+                        return True
+                    
+                    # If not within polygon, check distance to polygon
+                    distance_to_polygon = warning_polygon.exterior.distance(user_point) * 111  # Convert to km
+                    is_near = distance_to_polygon <= Config.WARNING_RADIUS_KM
+                    logger.debug(f"Distance to polygon: {distance_to_polygon:.2f}km, is near: {is_near}")
+                    return is_near
+
+            except Exception as e:
+                logger.error(f"Error in polygon check: {e}")
+
+        # Fallback to simple distance check if polygon check fails
         warn_lat = float(warning_location.get('lat', 0))
         warn_lon = float(warning_location.get('lon', 0))
-
-        # Log extracted coordinates
-        logger.debug(f"User coordinates: ({user_lat}, {user_lon})")
-        logger.debug(f"Warning coordinates: ({warn_lat}, {warn_lon})")
-
+        
         # Validate coordinates
         if not all([
             -90 <= lat <= 90 and -180 <= lon <= 180
@@ -132,7 +170,6 @@ def check_location_relevance(user_location: Dict, warning_location: Dict) -> boo
             return False
 
         # Calculate distance
-        from geopy.distance import geodesic
         user_coords = (user_lat, user_lon)
         warn_coords = (warn_lat, warn_lon)
         

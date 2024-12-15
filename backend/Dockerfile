@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     libproj-dev \
     proj-data \
     proj-bin \
+    libgeos-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first to leverage Docker cache
