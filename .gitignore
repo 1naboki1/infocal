@@ -1,0 +1,4 @@
+.env
+export.sh
+/project_export
+/backend/infocal.log

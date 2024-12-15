@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:8080/api
+      - VITE_FRONTEND_URL=http://localhost:3000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - infocal-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/infocal
+      - MONGO_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
+      - MONGO_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - GEOSPHERE_API_URL=https://warnungen.zamg.at/wsapp/api/getWarnstatus
+      - JWT_SECRET=${JWT_SECRET}
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - GUNICORN_TIMEOUT=120
+      - WARNING_CHECK_INTERVAL=300
+      - LOG_LEVEL=INFO
+    command: gunicorn --bind 0.0.0.0:8080 --timeout 120 --workers 4 --access-logfile - --error-logfile - wsgi:app
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - mongodb
+    networks:
+      - infocal-network
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+      - MONGO_INITDB_DATABASE=infocal
+    networks:
+      - infocal-network
+    restart: unless-stopped
+
+networks:
+  infocal-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
