@@ -9,7 +9,6 @@ Infocal is built using the following technologies:
 - **Backend**: Node.js with Express
 - **Database**: MongoDB
 - **Containerization**: Docker
-- **Data Processing**: Python
 
 ### Project Structure
 The project structure is as follows:
@@ -28,11 +27,6 @@ infocal/
 │   │   ├── pages/
 │   │   ├── App.js
 │   │   └── index.js
-├── data_processing/
-│   ├── scripts/
-│   │   ├── data_cleaning.py
-│   │   ├── data_analysis.py
-│   └── requirements.txt
 ├── Dockerfile
 ├── docker-compose.yml
 ├── package.json
@@ -42,56 +36,69 @@ infocal/
 ### Backend
 The backend is built using Node.js and Express. It handles API requests and interacts with the MongoDB database. The main components are:
 - **Controllers**: Handle the logic for different routes.
+    - Example: `topicsController.js` contains functions to handle CRUD operations for topics.
 - **Models**: Define the data schema for MongoDB.
+    - Example: `Topic.js` defines the schema for a topic.
 - **Routes**: Define the API endpoints and map them to the corresponding controllers.
+    - Example: `topicsRoutes.js` defines routes for topics and maps them to the controller functions.
 - **app.js**: Initializes the Express app and sets up middleware.
+    ```javascript
+    const express = require('express');
+    const app = express();
+    const bodyParser = require('body-parser');
+    const topicsRoutes = require('./routes/topicsRoutes');
+
+    app.use(bodyParser.json());
+    app.use('/api/topics', topicsRoutes);
+
+    module.exports = app;
+    ```
 - **server.js**: Starts the server and listens for incoming requests.
+    ```javascript
+    const app = require('./app');
+    const mongoose = require('mongoose');
+
+    mongoose.connect('mongodb://localhost:27017/infocal', { useNewUrlParser: true, useUnifiedTopology: true });
+
+    const port = process.env.PORT || 3000;
+    app.listen(port, () => {
+        console.log(`Server is running on port ${port}`);
+    });
+    ```
 
 ### Frontend
 The frontend is built using React.js. It provides the user interface and interacts with the backend API. The main components are:
 - **Components**: Reusable UI elements.
+    - Example: `TopicList.js` displays a list of topics.
 - **Pages**: Different views of the application.
+    - Example: `HomePage.js` is the main landing page.
 - **App.js**: The main component that sets up routing and renders other components.
-- **index.js**: The entry point of the React application.
+    ```javascript
+    import React from 'react';
+    import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
+    import HomePage from './pages/HomePage';
+    import TopicList from './components/TopicList';
 
-### Data Processing
-The data processing component is built using Python. It handles data cleaning and analysis tasks. The main components are:
-- **data_cleaning.py**: Contains functions to clean and preprocess data.
-    - `clean_data(data)`: Cleans the input data by removing duplicates and handling missing values.
-        ```python
-        def clean_data(data):
-            # Remove duplicates
-            data = data.drop_duplicates()
-            # Handle missing values
-            data = data.fillna(method='ffill')
-            return data
-        ```
-    - `normalize_data(data)`: Normalizes the data to a standard format.
-        ```python
-        def normalize_data(data):
-            # Normalize data
-            data = (data - data.mean()) / data.std()
-            return data
-        ```
-- **data_analysis.py**: Contains functions to analyze data and generate insights.
-    - `analyze_data(data)`: Performs data analysis and returns insights.
-        ```python
-        def analyze_data(data):
-            # Perform analysis
-            insights = data.describe()
-            return insights
-        ```
-    - `generate_report(data)`: Generates a report based on the analyzed data.
-        ```python
-        def generate_report(data):
-            # Generate report
-            report = f"Data Report:\n{data.describe()}"
-            return report
-        ```
-- **requirements.txt**: Lists the Python dependencies required for the data processing scripts.
+    function App() {
+        return (
+            <Router>
+                <Switch>
+                    <Route path="/" exact component={HomePage} />
+                    <Route path="/topics" component={TopicList} />
+                </Switch>
+            </Router>
+        );
+    }
+
+    export default App;
     ```
-    pandas
-    numpy
+- **index.js**: The entry point of the React application.
+    ```javascript
+    import React from 'react';
+    import ReactDOM from 'react-dom';
+    import App from './App';
+
+    ReactDOM.render(<App />, document.getElementById('root'));
     ```
 
 ### API Endpoints
@@ -158,11 +165,6 @@ To run tests for Infocal, follow these steps:
     ```bash
     cd frontend
     npm test
-    ```
-3. Navigate to the data_processing directory and run the tests:
-    ```bash
-    cd data_processing
-    python -m unittest discover
     ```
 
 ## Contributing
