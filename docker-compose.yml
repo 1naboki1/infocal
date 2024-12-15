@@ -38,7 +38,7 @@ services:
       - GUNICORN_TIMEOUT=120
       - WARNING_CHECK_INTERVAL=300
       - LOG_LEVEL=INFO
-    command: gunicorn --bind 0.0.0.0:8080 --timeout 120 --workers 4 --access-logfile - --error-logfile - wsgi:app
+    command: gunicorn --bind 0.0.0.0:8080 --timeout 120 --workers 1 --access-logfile - --error-logfile - wsgi:app
     volumes:
       - ./backend:/app
     depends_on:
